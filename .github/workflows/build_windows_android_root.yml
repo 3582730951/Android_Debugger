@@ -98,7 +98,11 @@ jobs:
       - name: Build Third-Party Libraries First
         shell: pwsh
         run: |
-          cmake `
+          $cmakeExe = Join-Path $env:R3_CMAKE_ROOT "bin\cmake.exe"
+          if (-not (Test-Path $cmakeExe)) {
+            $cmakeExe = (Get-Command cmake -CommandType Application).Source
+          }
+          & $cmakeExe `
             -S . `
             -B build\third_party_prebuild `
             -G Ninja `
@@ -106,7 +110,7 @@ jobs:
             -DQt6_DIR="${env:R3_QT6_DIR}" `
             -DCMAKE_PREFIX_PATH="${env:R3_QT_KIT_ROOT}" `
             -DR3_BUILD_LEGACY_WIN32_UI=OFF
-          cmake --build build\third_party_prebuild --config ${env:BUILD_TYPE} --target lz4 capstone_static
+          & $cmakeExe --build build\third_party_prebuild --config ${env:BUILD_TYPE} --target lz4 capstone_static
 
       - name: Build Android Agent (arm64 + arm32)
         shell: pwsh
