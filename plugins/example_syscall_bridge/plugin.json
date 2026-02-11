@@ -1,0 +1,21 @@
+{
+  "id": "com.company.syscall.bridge.example",
+  "name": "Example Syscall Bridge",
+  "version": "1.0.0",
+  "description": "Demo plugin manifest for custom syscall memory provider",
+  "mode": "manifest",
+  "priority": 100,
+  "abi": "r3.plugin.v1",
+  "supported_arch": ["arm64", "arm32"],
+  "quickstart": "quickstart.json",
+  "capabilities": [
+    "memory.provider",
+    "memory.syscall_bridge"
+  ],
+  "memory_provider": {
+    "syscall_read": 451,
+    "syscall_write": 452,
+    "timeout_ms": 1200,
+    "user_ctx_hex": "01 00 00 00 2A 00 00 00 00 00 00 00 00 00 00 00"
+  }
+}

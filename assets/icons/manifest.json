@@ -1,0 +1,14 @@
+{
+  "icons": [
+    { "id": "connect",  "file": "connect.svg" },
+    { "id": "process",  "file": "process.svg" },
+    { "id": "scan",     "file": "scan.svg" },
+    { "id": "memory",   "file": "memory.svg" },
+    { "id": "pointer",  "file": "pointer.svg" },
+    { "id": "debugger", "file": "debugger.svg" },
+    { "id": "open",     "file": "open.svg" },
+    { "id": "save",     "file": "save.svg" },
+    { "id": "settings", "file": "settings.svg" },
+    { "id": "stop",     "file": "stop.svg" }
+  ]
+}

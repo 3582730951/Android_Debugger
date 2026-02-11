@@ -1,0 +1,9 @@
+# Local test assets not for GitHub
+/test/
+/build/
+/seach_point/
+*.txt
+!CMakeLists.txt
+!**/CMakeLists.txt
+/tools/__pycache__/
+*.pyc

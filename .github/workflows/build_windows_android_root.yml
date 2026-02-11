@@ -1,0 +1,163 @@
+name: Build And Package (android_root)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - android_root
+  pull_request:
+    branches:
+      - android_root
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-and-agent:
+    runs-on: windows-2022
+    timeout-minutes: 180
+    env:
+      BUILD_TYPE: Release
+      QT_VERSION: 6.10.1
+      QT_ARCH: win64_msvc2022_64
+      NDK_VERSION: 27.2.12479018
+      R3_OUT_WINDOWS: ${{ github.workspace }}\build\windows_client
+      R3_OUT_ANDROID: ${{ github.workspace }}\build\android_agent
+      R3_DEPS_ROOT: ${{ github.workspace }}\.deps
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Pull Submodules
+        shell: pwsh
+        run: git submodule update --init --recursive
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Setup CMake + Ninja
+        uses: lukka/get-cmake@latest
+
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: ${{ env.QT_ARCH }}
+          cache: true
+          dir: ${{ env.R3_DEPS_ROOT }}\Qt
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK + platform-tools (adb)
+        shell: pwsh
+        run: |
+          sdkmanager --install "ndk;${env:NDK_VERSION}" "platform-tools"
+          Write-Output "ANDROID_SDK_ROOT=$env:ANDROID_SDK_ROOT" >> $env:GITHUB_ENV
+          Write-Output "R3_NDK_ROOT=$env:ANDROID_SDK_ROOT\ndk\${env:NDK_VERSION}" >> $env:GITHUB_ENV
+          Write-Output "R3_ADB_ROOT=$env:ANDROID_SDK_ROOT\platform-tools" >> $env:GITHUB_ENV
+
+      - name: Resolve Toolchain Paths
+        shell: pwsh
+        run: |
+          $cmake = (Get-Command cmake).Source
+          $ninja = (Get-Command ninja).Source
+          Write-Host "cmake: $cmake"
+          Write-Host "ninja: $ninja"
+
+          $cmakeRoot = Split-Path (Split-Path $cmake -Parent) -Parent
+          Write-Output "R3_CMAKE_ROOT=$cmakeRoot" >> $env:GITHUB_ENV
+
+          $qtRoot = Join-Path $env:R3_DEPS_ROOT "Qt"
+          if (-not (Test-Path $qtRoot)) {
+            throw "Qt root not found: $qtRoot"
+          }
+          $qtConfig = Get-ChildItem -Path $qtRoot -Recurse -Filter "Qt6Config.cmake" |
+            Where-Object { $_.FullName -match "\\msvc2022_64\\" } |
+            Select-Object -First 1
+          if (-not $qtConfig) {
+            $qtConfig = Get-ChildItem -Path $qtRoot -Recurse -Filter "Qt6Config.cmake" | Select-Object -First 1
+          }
+          if (-not $qtConfig) {
+            throw "Qt6Config.cmake not found under: $qtRoot"
+          }
+          $qt6Dir = Split-Path $qtConfig.FullName -Parent
+          $qtKitRoot = (Resolve-Path (Join-Path $qt6Dir "..\..\..")).Path
+          Write-Host "Qt6_DIR: $qt6Dir"
+          Write-Host "Qt kit root: $qtKitRoot"
+          Write-Output "R3_QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
+          Write-Output "R3_QT6_DIR=$qt6Dir" >> $env:GITHUB_ENV
+          Write-Output "R3_QT_KIT_ROOT=$qtKitRoot" >> $env:GITHUB_ENV
+
+      - name: Build Third-Party Libraries First
+        shell: pwsh
+        run: |
+          cmake `
+            -S . `
+            -B build\third_party_prebuild `
+            -G Ninja `
+            -DCMAKE_BUILD_TYPE=${env:BUILD_TYPE} `
+            -DQt6_DIR="${env:R3_QT6_DIR}" `
+            -DCMAKE_PREFIX_PATH="${env:R3_QT_KIT_ROOT}" `
+            -DR3_BUILD_LEGACY_WIN32_UI=OFF
+          cmake --build build\third_party_prebuild --config ${env:BUILD_TYPE} --target lz4 capstone_static
+
+      - name: Build Android Agent (arm64 + arm32)
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\tools\build_android_agent.ps1 `
+            -NdkRoot "${env:R3_NDK_ROOT}" `
+            -CMakeRoot "${env:R3_CMAKE_ROOT}" `
+            -OutRoot "${env:R3_OUT_ANDROID}" `
+            -BuildType "${env:BUILD_TYPE}" `
+            -UseCompilerCache $false
+
+      - name: Build Windows Client + Bundle (include adb + agent)
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\tools\build_windows_client.ps1 `
+            -NdkRoot "${env:R3_NDK_ROOT}" `
+            -CMakeRoot "${env:R3_CMAKE_ROOT}" `
+            -AdbRoot "${env:R3_ADB_ROOT}" `
+            -QtRoot "${env:R3_QT_ROOT}" `
+            -QtKit "msvc2022_64" `
+            -OutRoot "${env:R3_OUT_WINDOWS}" `
+            -AgentOutRoot "${env:R3_OUT_ANDROID}" `
+            -BuildType "${env:BUILD_TYPE}" `
+            -BuildLegacyWin32 $false `
+            -CleanBuild $true `
+            -BundleAdb $true `
+            -BundleAgent $true `
+            -UseCompilerCache $false
+
+      - name: Build Release Package
+        shell: pwsh
+        run: |
+          $pkgRoot = Join-Path $env:GITHUB_WORKSPACE "build\release_package"
+          $zipPath = Join-Path $env:GITHUB_WORKSPACE "build\r3_android_debugger_windows_bundle.zip"
+          if (Test-Path $pkgRoot) { Remove-Item -Recurse -Force $pkgRoot }
+          if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
+          New-Item -ItemType Directory -Path $pkgRoot | Out-Null
+
+          Copy-Item -Path "${env:R3_OUT_WINDOWS}" -Destination (Join-Path $pkgRoot "windows_client") -Recurse -Force
+          Copy-Item -Path "${env:R3_OUT_ANDROID}" -Destination (Join-Path $pkgRoot "android_agent_raw") -Recurse -Force
+
+          Compress-Archive -Path (Join-Path $pkgRoot "*") -DestinationPath $zipPath -Force
+          Write-Host "Package: $zipPath"
+          Write-Output "R3_ARTIFACT_ZIP=$zipPath" >> $env:GITHUB_ENV
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: r3-android-debugger-windows-bundle
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            ${{ env.R3_ARTIFACT_ZIP }}
+            ${{ env.R3_OUT_WINDOWS }}

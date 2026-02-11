@@ -1,0 +1,26 @@
+{
+  "fields": [
+    {
+      "id": "version",
+      "label": "CtxVersion",
+      "type": "u32",
+      "default": "1",
+      "description": "VendorMemCtx version"
+    },
+    {
+      "id": "policy",
+      "label": "Policy",
+      "type": "u32",
+      "default": "1",
+      "description": "Security policy bitmask"
+    },
+    {
+      "id": "token",
+      "label": "Token",
+      "type": "u64",
+      "default": "42",
+      "description": "Authorization token"
+    }
+  ]
+}
+

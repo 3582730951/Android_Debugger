@@ -1,0 +1,15 @@
+{
+  "scan_tab1": [0.045, 0.22],
+  "scan_tab2": [0.105, 0.22],
+  "toolbar_settings": [0.123, 0.125],
+  "open_memory_view": [0.073, 0.695],
+  "open_add_address": [0.905, 0.845],
+  "add_dialog_pointer_checkbox": [0.073, 0.695],
+  "mv_menu_file": [0.035, 0.062],
+  "mv_menu_search": [0.085, 0.062],
+  "mv_menu_view": [0.135, 0.062],
+  "mv_menu_debug": [0.185, 0.062],
+  "mv_menu_tools": [0.245, 0.062],
+  "mv_menu_kernel": [0.315, 0.062]
+}
+
