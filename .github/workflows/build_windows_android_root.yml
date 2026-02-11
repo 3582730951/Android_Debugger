@@ -102,15 +102,25 @@ jobs:
           if (-not (Test-Path $cmakeExe)) {
             $cmakeExe = (Get-Command cmake -CommandType Application).Source
           }
-          & $cmakeExe `
-            -S . `
-            -B build\third_party_prebuild `
-            -G Ninja `
-            -DCMAKE_BUILD_TYPE=${env:BUILD_TYPE} `
-            -DQt6_DIR="${env:R3_QT6_DIR}" `
-            -DCMAKE_PREFIX_PATH="${env:R3_QT_KIT_ROOT}" `
-            -DR3_BUILD_LEGACY_WIN32_UI=OFF
-          & $cmakeExe --build build\third_party_prebuild --config ${env:BUILD_TYPE} --target lz4 capstone_static
+          $configureArgs = @(
+            "-S", ".",
+            "-B", "build\third_party_prebuild",
+            "-G", "Ninja",
+            "-DCMAKE_BUILD_TYPE=$($env:BUILD_TYPE)",
+            "-DQt6_DIR=$($env:R3_QT6_DIR)",
+            "-DCMAKE_PREFIX_PATH=$($env:R3_QT_KIT_ROOT)",
+            "-DR3_BUILD_LEGACY_WIN32_UI=OFF"
+          )
+          & $cmakeExe @configureArgs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $buildArgs = @(
+            "--build", "build\third_party_prebuild",
+            "--config", "$($env:BUILD_TYPE)",
+            "--target", "lz4", "capstone_static"
+          )
+          & $cmakeExe @buildArgs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build Android Agent (arm64 + arm32)
         shell: pwsh
