@@ -173,7 +173,7 @@ void ProcessDialog::AppendProcessRowsChunk() {
 
   constexpr int kChunkRows = 160;
   const int start = pending_row_index_;
-  const int end = std::min(total, start + kChunkRows);
+  const int end = (std::min)(total, start + kChunkRows);
 
   source_model_->insertRows(start, end - start);
   for (int row = start; row < end; ++row) {

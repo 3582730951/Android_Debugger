@@ -2235,7 +2235,7 @@ void MemoryViewWindow::PopulateDisasmTable(uint64_t base, const std::vector<uint
     }
     if (chunk == 0) {
       const size_t fallback = (arch_ == protocol::RegsArch::ARM64 || arch_ == protocol::RegsArch::ARM32) ? 4 : 1;
-      chunk = std::min(fallback, data.size() - off);
+      chunk = (std::min)(fallback, data.size() - off);
       if (chunk == 0) {
         break;
       }
