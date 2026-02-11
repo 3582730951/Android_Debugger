@@ -492,8 +492,8 @@ bool PointerToolsDialog::BuildChainsToTarget(uint64_t target,
                                std::vector<PointerChainRecord>* out) {
     const uint64_t max_u = static_cast<uint64_t>(max_offset);
     const uint64_t low = wanted > max_u ? (wanted - max_u) : 0;
-    const uint64_t high = wanted > (std::numeric_limits<uint64_t>::max() - max_u)
-                              ? std::numeric_limits<uint64_t>::max()
+    const uint64_t high = wanted > ((std::numeric_limits<uint64_t>::max)() - max_u)
+                              ? (std::numeric_limits<uint64_t>::max)()
                               : (wanted + max_u);
 
     const auto begin_it = std::lower_bound(entries.begin(), entries.end(), low, [](const auto& lhs, uint64_t value) {
@@ -504,13 +504,13 @@ bool PointerToolsDialog::BuildChainsToTarget(uint64_t target,
       int64_t off = 0;
       if (wanted >= it->value) {
         const uint64_t delta = wanted - it->value;
-        if (delta > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
+        if (delta > static_cast<uint64_t>((std::numeric_limits<int64_t>::max)())) {
           continue;
         }
         off = static_cast<int64_t>(delta);
       } else {
         const uint64_t delta = it->value - wanted;
-        if (delta > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
+        if (delta > static_cast<uint64_t>((std::numeric_limits<int64_t>::max)())) {
           continue;
         }
         off = -static_cast<int64_t>(delta);
@@ -713,7 +713,7 @@ bool PointerToolsDialog::ParseSignedOffset(const QString& text, int64_t* out_val
   if (!ok) {
     return false;
   }
-  if (raw > static_cast<qulonglong>(std::numeric_limits<int64_t>::max())) {
+  if (raw > static_cast<qulonglong>((std::numeric_limits<int64_t>::max)())) {
     return false;
   }
   int64_t value = static_cast<int64_t>(raw);
@@ -841,7 +841,7 @@ void PointerToolsDialog::OnRunPointerCompare() {
   }
 
   std::vector<PointerChainRecord> common;
-  common.reserve(std::min(chains_a.size(), chains_b.size()));
+  common.reserve((std::min)(chains_a.size(), chains_b.size()));
   std::unordered_set<std::string> seen_common;
   for (const auto& chain : chains_b) {
     const std::string key = ChainKey(chain).toStdString();
@@ -1198,7 +1198,7 @@ void PointerToolsDialog::PopulateTraverseRows(QTreeWidgetItem* parent, uint64_t 
   const int stride = traverse_stride_spin_->value();
   for (int i = 0; i < count; ++i) {
     const uint64_t offset = static_cast<uint64_t>(static_cast<uint64_t>(i) * static_cast<uint64_t>(stride));
-    if (base > std::numeric_limits<uint64_t>::max() - offset) {
+    if (base > (std::numeric_limits<uint64_t>::max)() - offset) {
       break;
     }
     const uint64_t address = base + offset;

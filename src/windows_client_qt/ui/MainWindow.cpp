@@ -1479,7 +1479,7 @@ void MainWindow::PopulateScanResultRows(const std::vector<uint64_t>& addresses, 
   if (value_size > 0 && !rows.empty()) {
     static constexpr size_t kBatchLimit = 128;
     for (size_t begin = 0; begin < rows.size(); begin += kBatchLimit) {
-      const size_t end = std::min(rows.size(), begin + kBatchLimit);
+      const size_t end = (std::min)(rows.size(), begin + kBatchLimit);
 
       std::vector<r3::windows_client_ng::services::ClientService::ReadRange> ranges;
       ranges.reserve(end - begin);
@@ -2310,7 +2310,7 @@ void MainWindow::OnAddressRefreshTick() {
   }
 
   std::vector<AddressRefreshJob> jobs;
-  jobs.reserve(static_cast<size_t>(std::min(address_model_->rowCount(), 512)));
+  jobs.reserve(static_cast<size_t>((std::min)(address_model_->rowCount(), 512)));
   for (int row = 0; row < address_model_->rowCount(); ++row) {
     const bool active = address_model_->item(row, 0) && address_model_->item(row, 0)->checkState() == Qt::Checked;
     if (!active) {

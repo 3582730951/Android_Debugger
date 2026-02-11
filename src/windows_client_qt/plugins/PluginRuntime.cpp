@@ -343,14 +343,14 @@ bool PluginRuntime::Analyze(const AnalysisRequest& request,
 
   const size_t header_size = offsetof(R3AnalysisReqV1, payload);
   const size_t payload_size = request.bytes.size() + request.regs_blob.size() + request.memory_window.size();
-  if (header_size > std::numeric_limits<size_t>::max() - payload_size) {
+  if (header_size > (std::numeric_limits<size_t>::max)() - payload_size) {
     if (out_error) {
       *out_error = QStringLiteral("分析请求过大");
     }
     return false;
   }
   const size_t total_size = header_size + payload_size;
-  if (total_size > std::numeric_limits<uint32_t>::max()) {
+  if (total_size > (std::numeric_limits<uint32_t>::max)()) {
     if (out_error) {
       *out_error = QStringLiteral("分析请求过大");
     }
@@ -568,7 +568,7 @@ int PluginRuntime::DispatchEventToMemOp(uint32_t op,
 
   const size_t base_size = sizeof(R3SysMemReqV1);
   const size_t total_size = base_size + user_ctx.size() + write_len;
-  if (total_size > std::numeric_limits<uint32_t>::max()) {
+  if (total_size > (std::numeric_limits<uint32_t>::max)()) {
     if (out_error) {
       *out_error = QStringLiteral("插件内存事件请求过大");
     }

@@ -194,7 +194,7 @@ bool PluginCatalog::LoadFromRoot(const QString& root_path, QString* out_error) {
     if (!mem.isEmpty()) {
       m.syscall_read = mem.value(QStringLiteral("syscall_read")).toInt(-1);
       m.syscall_write = mem.value(QStringLiteral("syscall_write")).toInt(-1);
-      m.timeout_ms = std::max(1, mem.value(QStringLiteral("timeout_ms")).toInt(1000));
+      m.timeout_ms = (std::max)(1, mem.value(QStringLiteral("timeout_ms")).toInt(1000));
       m.default_user_ctx_hex = mem.value(QStringLiteral("user_ctx_hex")).toString().trimmed();
     }
 

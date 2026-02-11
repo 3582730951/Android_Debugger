@@ -56,7 +56,12 @@ target_link_libraries(r3_windows_client_qt PRIVATE
   lz4
 )
 
-target_compile_definitions(r3_windows_client_qt PRIVATE UNICODE _UNICODE)
+target_compile_definitions(r3_windows_client_qt PRIVATE
+  UNICODE
+  _UNICODE
+  NOMINMAX
+  WIN32_LEAN_AND_MEAN
+)
 target_compile_options(r3_windows_client_qt PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
   $<$<CXX_COMPILER_ID:GNU>:-finput-charset=UTF-8 -fexec-charset=UTF-8>
@@ -97,6 +102,12 @@ target_link_libraries(r3_plugin_override_e2e_runner PRIVATE
   Qt6::Core
   ws2_32
   lz4
+)
+target_compile_definitions(r3_plugin_override_e2e_runner PRIVATE
+  UNICODE
+  _UNICODE
+  NOMINMAX
+  WIN32_LEAN_AND_MEAN
 )
 target_compile_options(r3_plugin_override_e2e_runner PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/utf-8>

@@ -293,7 +293,7 @@ void SettingsDialog::SetData(const SettingsData& data) {
   plugin_root_edit_->setText(data.plugin_root_path);
   plugin_enable_check_->setChecked(data.plugin_enabled);
   plugin_fallback_check_->setChecked(data.plugin_allow_fallback);
-  plugin_timeout_spin_->setValue(std::max(1, data.plugin_timeout_ms));
+  plugin_timeout_spin_->setValue((std::max)(1, data.plugin_timeout_ms));
   plugin_syscall_read_spin_->setValue(data.plugin_syscall_read);
   plugin_syscall_write_spin_->setValue(data.plugin_syscall_write);
   plugin_user_ctx_edit_->setText(data.plugin_user_ctx_hex);
