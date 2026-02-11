@@ -248,8 +248,8 @@ function Bundle-VcRuntime {
     }
   }
 
-  $candidateDirs = $candidateDirs | Where-Object { Test-Path $_ } | Select-Object -Unique
-  if (-not $candidateDirs -or $candidateDirs.Count -eq 0) {
+  $candidateDirs = @($candidateDirs | Where-Object { Test-Path $_ } | Select-Object -Unique)
+  if ($candidateDirs.Count -eq 0) {
     Write-Host "VC redist directory not found, skip VC runtime bundle"
     return
   }
