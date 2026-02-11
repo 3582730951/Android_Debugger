@@ -77,14 +77,23 @@ function Resolve-QtKitRoot {
     [string]$PreferredKit
   )
 
+  function Test-IsQtKitRoot {
+    param([string]$Path)
+    return (Test-Path (Join-Path $Path "lib\cmake\Qt6\Qt6Config.cmake"))
+  }
+
   if (-not (Test-Path $QtRootPath)) {
     throw "Qt root not found: $QtRootPath"
   }
 
+  if (Test-IsQtKitRoot -Path $QtRootPath) {
+    return (Resolve-Path $QtRootPath).Path
+  }
+
   if (-not [string]::IsNullOrWhiteSpace($PreferredKit)) {
-    $explicit = Get-ChildItem -Path $QtRootPath -Directory -ErrorAction SilentlyContinue |
-      ForEach-Object { Get-ChildItem -Path $_.FullName -Directory -ErrorAction SilentlyContinue } |
-      Where-Object { $_.Name -eq $PreferredKit } |
+    $explicit = Get-ChildItem -Path $QtRootPath -Directory -Recurse -ErrorAction SilentlyContinue |
+      Where-Object { $_.Name -eq $PreferredKit -and (Test-IsQtKitRoot -Path $_.FullName) } |
+      Sort-Object FullName -Descending |
       Select-Object -First 1
     if ($explicit) {
       return $explicit.FullName
@@ -94,9 +103,8 @@ function Resolve-QtKitRoot {
 
   $priority = @("mingw_64", "msvc2022_64", "msvc2022_arm64", "llvm-mingw_64")
   foreach ($name in $priority) {
-    $kit = Get-ChildItem -Path $QtRootPath -Directory -ErrorAction SilentlyContinue |
-      ForEach-Object { Get-ChildItem -Path $_.FullName -Directory -ErrorAction SilentlyContinue } |
-      Where-Object { $_.Name -eq $name } |
+    $kit = Get-ChildItem -Path $QtRootPath -Directory -Recurse -ErrorAction SilentlyContinue |
+      Where-Object { $_.Name -eq $name -and (Test-IsQtKitRoot -Path $_.FullName) } |
       Sort-Object FullName -Descending |
       Select-Object -First 1
     if ($kit) {
