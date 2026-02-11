@@ -147,6 +147,23 @@ function Resolve-QtToolchain {
   return $result
 }
 
+function Resolve-TargetExePath {
+  param(
+    [string]$BuildRoot,
+    [string]$TargetName
+  )
+  $candidates = @(
+    (Join-Path $BuildRoot ("src\" + $TargetName.Replace("r3_windows_client_", "windows_client_") + "\" + $TargetName + ".exe")),
+    (Join-Path $BuildRoot ("src\windows_client_qt\" + $TargetName + ".exe"))
+  )
+  foreach ($candidate in $candidates) {
+    if (Test-Path $candidate) {
+      return (Resolve-Path $candidate).Path
+    }
+  }
+  throw "target exe not found: $TargetName under $BuildRoot"
+}
+
 $qtKitRoot = Resolve-QtKitRoot -QtRootPath $QtRoot -PreferredKit $QtKit
 $qtInfo = Resolve-QtToolchain -QtKitRoot $qtKitRoot
 Write-Host "Using Qt kit: $($qtInfo.QtKitRoot)"
@@ -194,18 +211,80 @@ function Deploy-QtRuntime {
     Write-Host "windeployqt not found, skip runtime deploy"
     return
   }
-  $exe = Join-Path $BuildRoot ("src\" + $TargetName.Replace("r3_windows_client_", "windows_client_") + "\" + $TargetName + ".exe")
-  if (-not (Test-Path $exe)) {
-    $exe = Join-Path $BuildRoot ("src\windows_client_qt\" + $TargetName + ".exe")
-  }
-  if (-not (Test-Path $exe)) {
-    Write-Host "target exe not found for windeployqt, skip: $TargetName"
-    return
-  }
+  $exe = Resolve-TargetExePath -BuildRoot $BuildRoot -TargetName $TargetName
   & $WinDeployQtExe --no-compiler-runtime --no-translations $exe
 }
 
+function Bundle-VcRuntime {
+  param(
+    [string]$ExePath
+  )
+
+  if (-not (Test-Path $ExePath)) {
+    Write-Host "target exe missing, skip VC runtime bundle: $ExePath"
+    return
+  }
+
+  $exeDir = Split-Path $ExePath -Parent
+  $candidateDirs = @()
+
+  if (-not [string]::IsNullOrWhiteSpace($env:VCToolsRedistDir)) {
+    $candidateDirs += Join-Path $env:VCToolsRedistDir "x64\Microsoft.VC143.CRT"
+    $candidateDirs += Join-Path $env:VCToolsRedistDir "x64\Microsoft.VC142.CRT"
+    $candidateDirs += Join-Path $env:VCToolsRedistDir "x64\Microsoft.VC141.CRT"
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($env:VCINSTALLDIR)) {
+    $redistRoot = Join-Path $env:VCINSTALLDIR "Redist\MSVC"
+    if (Test-Path $redistRoot) {
+      $latest = Get-ChildItem -Path $redistRoot -Directory -ErrorAction SilentlyContinue |
+        Sort-Object Name -Descending |
+        Select-Object -First 1
+      if ($latest) {
+        $candidateDirs += Join-Path $latest.FullName "x64\Microsoft.VC143.CRT"
+        $candidateDirs += Join-Path $latest.FullName "x64\Microsoft.VC142.CRT"
+        $candidateDirs += Join-Path $latest.FullName "x64\Microsoft.VC141.CRT"
+      }
+    }
+  }
+
+  $candidateDirs = $candidateDirs | Where-Object { Test-Path $_ } | Select-Object -Unique
+  if (-not $candidateDirs -or $candidateDirs.Count -eq 0) {
+    Write-Host "VC redist directory not found, skip VC runtime bundle"
+    return
+  }
+
+  $runtimeFiles = @(
+    "msvcp140.dll",
+    "msvcp140_1.dll",
+    "msvcp140_2.dll",
+    "msvcp140_atomic_wait.dll",
+    "vcruntime140.dll",
+    "vcruntime140_1.dll",
+    "concrt140.dll"
+  )
+
+  foreach ($dir in $candidateDirs) {
+    $copied = 0
+    foreach ($file in $runtimeFiles) {
+      $src = Join-Path $dir $file
+      if (Test-Path $src) {
+        Copy-Item -Path $src -Destination (Join-Path $exeDir $file) -Force
+        $copied++
+      }
+    }
+    if ($copied -gt 0) {
+      Write-Host "Bundled VC runtime from $dir ($copied files)"
+      return
+    }
+  }
+
+  Write-Host "No VC runtime files copied; app may require system VC redistributable"
+}
+
 Deploy-QtRuntime -WinDeployQtExe $qtInfo.WinDeployQt -BuildRoot $OutRoot -TargetName $ClientTarget
+$clientExe = Resolve-TargetExePath -BuildRoot $OutRoot -TargetName $ClientTarget
+Bundle-VcRuntime -ExePath $clientExe
 
 function Copy-ToolsForRuntime {
   param([string]$RepoRoot, [string]$DstRoot)
