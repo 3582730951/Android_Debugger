@@ -52,6 +52,12 @@ jobs:
           cache: true
           dir: ${{ env.R3_DEPS_ROOT }}\Qt
 
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
@@ -59,8 +65,26 @@ jobs:
         shell: pwsh
         run: |
           sdkmanager --install "ndk;${env:NDK_VERSION}" "platform-tools"
+          $ndkRoot = Join-Path $env:ANDROID_SDK_ROOT "ndk\${env:NDK_VERSION}"
+          $toolchainPath = Join-Path $ndkRoot "build\cmake\android.toolchain.cmake"
+          if (-not (Test-Path $toolchainPath)) {
+            $ndkDir = Join-Path $env:ANDROID_SDK_ROOT "ndk"
+            if (Test-Path $ndkDir) {
+              $fallback = Get-ChildItem -Path $ndkDir -Directory | Sort-Object Name -Descending | Select-Object -First 1
+              if ($fallback) {
+                $candidate = Join-Path $fallback.FullName "build\cmake\android.toolchain.cmake"
+                if (Test-Path $candidate) {
+                  $ndkRoot = $fallback.FullName
+                  $toolchainPath = $candidate
+                }
+              }
+            }
+          }
+          if (-not (Test-Path $toolchainPath)) {
+            throw "NDK toolchain not found after sdkmanager install. ANDROID_SDK_ROOT=$env:ANDROID_SDK_ROOT"
+          }
           Write-Output "ANDROID_SDK_ROOT=$env:ANDROID_SDK_ROOT" >> $env:GITHUB_ENV
-          Write-Output "R3_NDK_ROOT=$env:ANDROID_SDK_ROOT\ndk\${env:NDK_VERSION}" >> $env:GITHUB_ENV
+          Write-Output "R3_NDK_ROOT=$ndkRoot" >> $env:GITHUB_ENV
           Write-Output "R3_ADB_ROOT=$env:ANDROID_SDK_ROOT\platform-tools" >> $env:GITHUB_ENV
 
       - name: Resolve Toolchain Paths
