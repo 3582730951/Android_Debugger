@@ -125,17 +125,17 @@ jobs:
       - name: Build Android Agent (arm64 + arm32)
         shell: pwsh
         run: |
-          powershell -ExecutionPolicy Bypass -File .\tools\build_android_agent.ps1 `
+          & .\tools\build_android_agent.ps1 `
             -NdkRoot "${env:R3_NDK_ROOT}" `
             -CMakeRoot "${env:R3_CMAKE_ROOT}" `
             -OutRoot "${env:R3_OUT_ANDROID}" `
             -BuildType "${env:BUILD_TYPE}" `
-            -UseCompilerCache $false
+            -UseCompilerCache:$false
 
       - name: Build Windows Client + Bundle (include adb + agent)
         shell: pwsh
         run: |
-          powershell -ExecutionPolicy Bypass -File .\tools\build_windows_client.ps1 `
+          & .\tools\build_windows_client.ps1 `
             -NdkRoot "${env:R3_NDK_ROOT}" `
             -CMakeRoot "${env:R3_CMAKE_ROOT}" `
             -AdbRoot "${env:R3_ADB_ROOT}" `
@@ -144,11 +144,11 @@ jobs:
             -OutRoot "${env:R3_OUT_WINDOWS}" `
             -AgentOutRoot "${env:R3_OUT_ANDROID}" `
             -BuildType "${env:BUILD_TYPE}" `
-            -BuildLegacyWin32 $false `
-            -CleanBuild $true `
-            -BundleAdb $true `
-            -BundleAgent $true `
-            -UseCompilerCache $false
+            -BuildLegacyWin32:$false `
+            -CleanBuild:$true `
+            -BundleAdb:$true `
+            -BundleAgent:$true `
+            -UseCompilerCache:$false
 
       - name: Build Release Package
         shell: pwsh
